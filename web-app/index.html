@@ -65,6 +65,7 @@
       
       function nodeEditValue(node, ref, isNew) {
         var tag = TagLibrary.tagHash[node.data.tagId];
+        
         if(TagLibrary.isLiteralTag(tag)) {
           var value = prompt("New value?", TagLibrary.getTagValue(tag));
           if((value === null || value === '') && !isNew) return;
@@ -313,6 +314,13 @@
           
           var e = $('#tree');
           var ref = e.jstree(true);
+          
+          e.bind("dblclick.jstree", function(event) {
+            var nodeId = $(event.target).closest("li")[0].id;
+            var node = ref.get_node(nodeId);
+            
+            nodeEditValue(node, ref);
+          });
           
           e.on('changed.jstree', function (e, data) {
             var i, j, r = [];
