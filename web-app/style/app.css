@@ -41,6 +41,19 @@ input#open_btn:active { border-color: #398439; }
 
 input#toggle_hexview_btn { min-width: 10px; background-color: #ccc; border-color: #bbb; }
 
+div#screen {
+  position: fixed;
+  bottom: 0;
+  top: 40px;
+  overflow-y: scroll;
+  left: 0;
+  right: 400px;
+}
+
+body.hide-hexview div#screen {
+  right: 0;
+}
+
 div#drop_zone {
   display: table;
   
