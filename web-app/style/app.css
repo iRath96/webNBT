@@ -39,6 +39,8 @@ input#open_btn { background-color: #5cb85c; border-color: #4cae4c; }
 input#open_btn:hover { box-shadow: inset 0 0 4px 1px #4cae4c; }
 input#open_btn:active { border-color: #398439; }
 
+input#toggle_hexview_btn { min-width: 10px; background-color: #ccc; border-color: #bbb; }
+
 div#drop_zone {
   display: table;
   
@@ -76,6 +78,10 @@ div#topbar {
   background-color: #f8f8f8;
 }
 
+body.hide-hexview div#topbar {
+  right: 0;
+}
+
 div#topbar div#search_bar {
   overflow: auto;
   padding-right: 5px;
@@ -108,6 +114,10 @@ pre#hexview {
   padding: 6px 8px;
   width: 354px;
   background-color: #f8f8f8;
+}
+
+body.hide-hexview pre#hexview {
+  display: none;
 }
 
 pre#hexview, div#topbar {

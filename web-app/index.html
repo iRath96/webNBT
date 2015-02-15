@@ -21,6 +21,8 @@
       
       var selectedTag;
       function notifyChanged() {
+        if(!hexviewShown) return;
+        
         var firstHighlightedLine = false;
         
         var hexStr = "";
@@ -380,6 +382,13 @@
         saveAs(new Blob([ bytes ], { type:type }), lastFilename);
       }
       
+      var hexviewShown = true;
+      function toggleHexview(btn) {
+        hexviewShown = !document.body.classList.toggle("hide-hexview");
+        //if(hexviewShown) notifyChanged();
+        btn.value = hexviewShown ? '>' : '<';
+      }
+      
     //]]>
     </script>
   </head>
@@ -426,6 +435,7 @@
       <div id="buttons">
         <input id="open_btn" type="button" value="Open" onclick="javascript:location.href=location.href;" />
         <input id="save_btn" type="button" value="Save" onclick="javascript:save();" />
+        <input id="toggle_hexview_btn" type="button" value="&gt;" onclick="javascript:toggleHexview(this);" />
       </div>
       <div id="search_bar">
         <input type="text" id="search_field" placeholder="Search..." />
