@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		FAC908011A8F4F46002BEE39 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAC908001A8F4F46002BEE39 /* main.cpp */; };
+		FAC908091A90DCE6002BEE39 /* zlib_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAC908071A90DCE6002BEE39 /* zlib_wrapper.cpp */; };
+		FAC9080C1A90DD53002BEE39 /* endianness.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAC9080A1A90DD53002BEE39 /* endianness.cpp */; };
+		FAC9080F1A90DDEA002BEE39 /* nbt_utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAC9080D1A90DDEA002BEE39 /* nbt_utils.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +28,12 @@
 /* Begin PBXFileReference section */
 		FAC907FD1A8F4F46002BEE39 /* nbt-utils */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "nbt-utils"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAC908001A8F4F46002BEE39 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		FAC908071A90DCE6002BEE39 /* zlib_wrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zlib_wrapper.cpp; sourceTree = "<group>"; };
+		FAC908081A90DCE6002BEE39 /* zlib_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zlib_wrapper.h; sourceTree = "<group>"; };
+		FAC9080A1A90DD53002BEE39 /* endianness.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = endianness.cpp; sourceTree = "<group>"; };
+		FAC9080B1A90DD53002BEE39 /* endianness.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = endianness.h; sourceTree = "<group>"; };
+		FAC9080D1A90DDEA002BEE39 /* nbt_utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nbt_utils.cpp; sourceTree = "<group>"; };
+		FAC9080E1A90DDEA002BEE39 /* nbt_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nbt_utils.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +67,12 @@
 			isa = PBXGroup;
 			children = (
 				FAC908001A8F4F46002BEE39 /* main.cpp */,
+				FAC9080D1A90DDEA002BEE39 /* nbt_utils.cpp */,
+				FAC9080E1A90DDEA002BEE39 /* nbt_utils.h */,
+				FAC9080A1A90DD53002BEE39 /* endianness.cpp */,
+				FAC9080B1A90DD53002BEE39 /* endianness.h */,
+				FAC908071A90DCE6002BEE39 /* zlib_wrapper.cpp */,
+				FAC908081A90DCE6002BEE39 /* zlib_wrapper.h */,
 			);
 			path = "nbt-utils";
 			sourceTree = "<group>";
@@ -118,6 +133,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAC9080C1A90DD53002BEE39 /* endianness.cpp in Sources */,
+				FAC908091A90DCE6002BEE39 /* zlib_wrapper.cpp in Sources */,
+				FAC9080F1A90DDEA002BEE39 /* nbt_utils.cpp in Sources */,
 				FAC908011A8F4F46002BEE39 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -202,6 +220,7 @@
 		FAC908051A8F4F46002BEE39 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				OTHER_LDFLAGS = "-lz";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -209,6 +228,7 @@
 		FAC908061A8F4F46002BEE39 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				OTHER_LDFLAGS = "-lz";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
