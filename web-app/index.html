@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>NBT Editor</title>
+    
+    <script type="text/javascript" src="src/TagLibrary.js"></script>
+    <script type="text/javascript" src="src/HighlightedString.js"></script>
+    
+    <script type="text/javascript" src="NBT.js"></script>
+    <link rel="stylesheet" href="style/app.css" />
+    
+    <link rel="stylesheet" href="lib/jstree/dist/themes/default/style.min.css" />
+    <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script src="lib/jstree/dist/jstree.min.js"></script>
+    
+    <script type="text/javascript" src="lib/FileSaver.min.js"></script>
+    
+    <script type="text/javascript">
+    //<![CDATA[
+      
+      var selectedTag;
+      function notifyChanged() {
+        var firstHighlightedLine = false;
+        
+        var hexStr = "";
+        var rawStr = Module.Tag.serialize(TagLibrary.tagHash[1], -1);
+        for(var i = 0; i < rawStr.length; ++i) {
+          var chr = rawStr.charCodeAt(i);
+          hexStr += (chr < 16 ? '0' : '') + chr.toString(16) + ' ';
+        }
+        
+        var bytesPerRow = 12;
+        
+        var selA = selectedTag ? selectedTag.getStartIndex() : 0;
+        var selB = selectedTag ? selectedTag.getEndIndex()   : 0;
+        
+        var leftStr = new HighlightedString(hexStr, [ selA * 3, selB * 3 ]);
+        var rightStr = new HighlightedString(rawStr.split(/[^a-z0-9_\-\+\*\(\)\[\]\{\} ]/i).join('.'), [ selA, selB ]);
+        
+        var str2 = "";
+        var rows = Math.ceil(rawStr.length / bytesPerRow);
+        for(var i = 0; i < rows; ++i) {
+          var hexPart = leftStr.substring(i * bytesPerRow * 3, (i+1) * bytesPerRow   * 3);
+          var rhPart  = rightStr.substring(i * bytesPerRow, (i+1) * bytesPerRow);
+          if(firstHighlightedLine === false && rhPart.indexOf('<font') !== -1)
+            firstHighlightedLine = i;
+          
+          var addr = (i*bytesPerRow).toString(16);
+          while(addr.length < 4) addr = '0' + addr;
+          str2 += '0x' + addr + ': ' + hexPart + '| ' + rhPart + "\n";
+        }
+        
+        var pre = document.querySelector('pre');
+        pre.innerHTML = str2;
+        if(firstHighlightedLine !== false) pre.scrollTop = Math.floor((pre.scrollHeight - 20) * firstHighlightedLine / rows);
+      }
+      
+      function pluralize(quantity, name) {
+        if(quantity != 1)
+          if(name.substr(-1) == 'y') name = name.substr(0, name.length - 1) + 'ies';
+          else name += 's';
+        return quantity + ' ' + name;
+      }
+      
+      function nodeEditValue(node, ref, isNew) {
+        var tag = TagLibrary.tagHash[node.data.tagId];
+        if(TagLibrary.isLiteralTag(tag)) {
+          var value = prompt("New value?", TagLibrary.getTagValue(tag));
+          if((value === null || value === '') && !isNew) return;
+          
+          if(isNumericTag(tag) && !(tag instanceof Module.LongTag)) value = Number(value);
+          TagLibrary.setTagValue(tag, value);
+          
+          notifyChanged();
+        }
+        
+        ref.set_text(node, TagLibrary.stringifyTag(tag, node.data.key));
+      }
+      
+      var treeData = "";
+      function refresh() {
+        treeData = TagLibrary.createTree(TagLibrary.tagHash[1]);
+        $('#tree').jstree(true).refresh();
+        
+        notifyChanged();
+      }
+      
+      function loadData(data) {
+        TagLibrary.tagHash[1] = Module.Tag.deserializeCompressed(data, true, -1);
+        refresh();
+      }
+      
+      var isSafari;
+      function checkBrowser() {
+        var please_switch = "\nPlease use a recent version of Firefox, Chrome or Opera.";
+        try {
+          !!new Blob; // check if blobs are supported.
+        } catch(e) {
+          try {
+            alert("Your browser is behind." + please_switch);
+          } catch(e) {
+            document.write("1) Your browser sucks,\n2) It blocks alert.");
+          }
+        }
+        
+        isSafari = navigator.userAgent.indexOf("Safari/") > -1;
+        if(navigator.userAgent.indexOf("Chrome/") > -1) isSafari = false;
+        if(navigator.userAgent.indexOf("OPR/") > -1) isSafari = false;
+        
+        if(isSafari)
+          alert("Safari does not properly support file downloads.\nYou can view and edit files, but saving them might not work." + please_switch);
+      }
+      
+      function setupSearchField() {
+        var to = false;
+        $('#search_field').keyup(function () {
+          if(to) { clearTimeout(to); }
+          to = setTimeout(function () {
+            var v = $('#search_field').val();
+            $('#tree').jstree(true).search(v);
+          }, 250);
+        });
+      }
+      
+      // Module['onRuntimeInitialized'] = function() {};
+      
+      window.addEventListener('load', function() {
+        checkBrowser();
+        setupSearchField();
+        
+        setTimeout(function() {
+          // Module.TOTAL_MEMORY = 16777216 * 512;
+          
+          $('#tree').jstree({
+            "plugins" : [ "contextmenu", "search" ], // , "dnd" ],
+            'core' : {
+              "check_callback" : true,
+              'data' : function(obj, cb) { return cb(treeData); }
+            },
+            "contextmenu": {
+              "items": function(node) {
+                var ref = $('#tree').jstree(true);
+                
+                var tag = TagLibrary.tagHash[node.data.tagId];
+                var actions = {};
+                
+                if(tag instanceof Module.CompoundTag) {
+                  var makeAction = function(type) {
+                    return function(obj) {
+                      var myTagId = ++tagId;
+                      TagLibrary.tagHash[tagId] = Module.makeTag(type);
+                      
+                      var icon = 'nbt-icon ' + TagLibrary.tagHash[tagId].constructor.name.toLowerCase();
+                      var nnode = ref.create_node(node, {
+                        icon:icon,
+                        text:"",
+                        data:{ tagId:myTagId, isRoot:false, parentTagId:node.data.tagId }
+                      }, "first");
+                      
+                      ref.edit(nnode);
+                    };
+                  };
+                  
+                  var submenu = {};
+                  for(var type in TagLibrary.typeMap)
+                    if(TagLibrary.typeMap.hasOwnProperty(type))
+                      submenu[type] = {
+                        "icon" : 'nbt-icon ' + type.toLowerCase(),
+                        "label" : type,
+                        "action" : makeAction(TagLibrary.typeMap[type])
+                      };
+                  
+                  actions["create"] = {
+                    "label": "New",
+                    "submenu" : submenu
+                  };
+                } else if(tag instanceof Module.ListTag) {
+                  actions["add"] = {
+                    "label": "Add",
+                    "action": function() { tag.addElement(); refresh(); notifyChanged(); }
+                  };
+                  
+                  var makeAction = function(type) {
+                    return function(obj) {
+                      tag.clear();
+                      tag.setEntryKind(type);
+                      
+                      refresh();
+                      notifyChanged();
+                    };
+                  };
+                  
+                  var submenu = {};
+                  for(var type in TagLibrary.typeMap)
+                    if(TagLibrary.typeMap.hasOwnProperty(type))
+                      submenu[type] = {
+                        "icon" : 'nbt-icon ' + type.toLowerCase(),
+                        "label" : type,
+                        "action" : makeAction(TagLibrary.typeMap[type])
+                      };
+                  
+                  actions["change_element_type"] = {
+                    "separator_after" : true,
+                    "label": "Change Element Type",
+                    "submenu" : submenu
+                  };
+                } else
+                  actions["edit"] = {
+                    "label": "Edit value",
+                    "action": function(obj) {
+                      nodeEditValue(node, ref);
+                    }
+                  };
+                
+                if(tag instanceof Module.ByteTag) {
+                  var setByte = function(value) {
+                    tag.setValue(value);
+                    ref.set_text(node, TagLibrary.stringifyTag(tag, node.data.key));
+                    notifyChanged();
+                  }
+                  
+                  actions["set_true"] = {
+                    "separator_before" : true,
+                    "label": "Set True",
+                    "action": function() { setByte(1) }
+                  };
+                  
+                  actions["set_false"] = {
+                    "separator_after" : true,
+                    "label": "Set False",
+                    "action": function() { setByte(0) }
+                  }
+                }
+                
+                /* Change type */
+                
+                var parentTag = TagLibrary.tagHash[node.data.parentTagId];
+                if(parentTag instanceof Module.CompoundTag || parentTag === undefined) {
+                  var makeAction = function(type) {
+                    return function(obj) {
+                      var ntag = Module.makeTag(type);
+                      TagLibrary.tagHash[node.data.tagId] = ntag;
+                      
+                      if(parentTag !== undefined)
+                        parentTag.getValuePtr().set(node.data.key, ntag);
+                      
+                      ntag.setHasName(true);
+                      ntag.setName(node.data.key);
+                      
+                      var icon = 'nbt-icon ' + ntag.constructor.name.toLowerCase();
+                      node.icon = icon;
+                      
+                      ref.set_text(node, TagLibrary.stringifyTag(ntag, node.data.key));
+                      
+                      if(node.children.length > 0) refresh();
+                      
+                      notifyChanged();
+                    };
+                  };
+                  
+                  var submenu = {};
+                  for(var type in TagLibrary.typeMap)
+                    if(TagLibrary.typeMap.hasOwnProperty(type))
+                      submenu[type] = {
+                        "icon" : 'nbt-icon ' + type.toLowerCase(),
+                        "label" : type,
+                        "action" : makeAction(TagLibrary.typeMap[type])
+                      };
+                  
+                  actions["change_type"] = {
+                    "separator_after" : true,
+                    "label": "Change Type",
+                    "submenu" : submenu
+                  };
+                }
+                
+                /* Other stuff */
+                
+                if(tag.hasName())
+                  actions["rename"] = {
+                    "label": "Rename",
+                    "action": function(obj) {
+                      node.text = TagLibrary.tagHash[node.data.tagId].getName();
+                      ref.edit(node);
+                      
+                      notifyChanged();
+                    }
+                  };
+                
+                if(!node.data.isRoot)
+                  actions["delete"] = {
+                    "label": "Delete",
+                    "action": function(obj) {
+                      var parentTag = TagLibrary.tagHash[node.data.parentTagId];
+                      if(parentTag instanceof Module.CompoundTag) {
+                        parentTag.getValuePtr().remove(node.data.key);
+                        ref.delete_node(node);
+                      } else {
+                        // ListTag
+                        parentTag.remove(node.data.key);
+                        refresh();
+                      }
+                      
+                      notifyChanged();
+                    }
+                  };
+                
+                return actions;
+              }
+            }
+          });
+          
+          var e = $('#tree');
+          var ref = e.jstree(true);
+          
+          e.on('changed.jstree', function (e, data) {
+            var i, j, r = [];
+            for(i = 0, j = data.selected.length; i < j; i++)
+              r.push(data.instance.get_node(data.selected[i]));
+            
+            var tag = undefined;
+            if(r.length > 0) tag = TagLibrary.tagHash[r[0].data.tagId];
+            
+            selectedTag = tag;
+            notifyChanged();
+          });
+          
+          e.bind('rename_node.jstree', function(r, e) {
+            var tag = TagLibrary.tagHash[e.node.data.tagId];
+            
+            tag.setHasName(true);
+            tag.setName(e.text);
+            
+            if(!e.node.data.isRoot) {
+              // A new node was created and named
+              
+              dbgn = e.node;
+              dbgt = tag;
+              
+              var parentTag = TagLibrary.tagHash[e.node.data.parentTagId];
+              var phash = parentTag.getValuePtr();
+              
+              if(e.node.data.key) phash.rename(e.node.data.key, e.text);
+              else { // This is a freshly created node
+                phash.set(e.text, tag);
+                nodeEditValue(e.node, ref, true);
+              }
+              
+              e.node.data.key = e.text;
+              
+              rhash = phash;
+            }
+            
+            ref.set_text(e.node, TagLibrary.stringifyTag(tag, e.node.data.key));
+            
+            notifyChanged();
+          });
+        }, 100);
+      });
+      
+      var lastFilename = "data.dat";
+      function save() {
+        var type = "application/octet-stream";
+        type = "application/binary"; // because Safari sucks.
+        
+        // Not so efficient, urgh.
+        
+        var data = Module.Tag.serializeCompressed(TagLibrary.tagHash[1], -1);
+        var bytes = new Uint8Array(data.length);
+        for(var i = 0; i < data.length; ++i) bytes[i] = data.charCodeAt(i);
+        saveAs(new Blob([ bytes ], { type:type }), lastFilename);
+      }
+      
+    //]]>
+    </script>
+  </head>
+  <body>
+    <div id="drop_zone"><span>Drop file here</span></div>
+    <script>
+      
+      function handleFileSelect(evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+        
+        var files = evt.dataTransfer.files; // FileList object.
+        for (var i = 0, f; f = files[i]; ++i) {
+          var reader = new FileReader();
+          
+          // Closure to capture the file information.
+          reader.onload = (function(file) {
+            lastFilename = file.name;
+            return function(e) {
+              loadData(e.target.result);
+            };
+          })(f);
+          
+          // Read in the image file as a data URL.
+          reader.readAsBinaryString(f);
+        }
+          
+        document.querySelector('#drop_zone').style.display = 'none';
+      }
+      
+      function handleDragOver(evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+      }
+      
+      // Setup the dnd listeners.
+      var dropZone = document.getElementById('drop_zone');
+      dropZone.addEventListener('dragover', handleDragOver, false);
+      dropZone.addEventListener('drop', handleFileSelect, false);
+      
+    </script>
+    <div id="topbar">
+      <div id="buttons">
+        <input id="open_btn" type="button" value="Open" onclick="javascript:location.href=location.href;" />
+        <input id="save_btn" type="button" value="Save" onclick="javascript:save();" />
+      </div>
+      <div id="search_bar">
+        <input type="text" id="search_field" placeholder="Search..." />
+      </div>
+    </div>
+    <div id="screen" style="position:fixed;bottom:0;top:40px;overflow-y:scroll;left:0;right:400px;">
+      <div id="tree"></div>
+    </div>
+    <pre id="hexview">data</pre>
+  </body>
+</html>

@@ -1,0 +1,146 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+input {
+  font: inherit;
+  outline: none;
+  border: 1px solid #d0d0d0;
+  border-top: 1px solid #bfbfbf;
+  border-bottom: 1px solid #dadada;
+  border-radius: 2px;
+  padding: 4px 7px;
+  height: 23px;
+}
+
+input[type="button"] {
+  padding: 4px 10px;
+  min-width: 60px;
+  /*-webkit-font-smoothing: antialiased;*/
+  color: white;
+  border: none;
+  border: 1px solid;
+  border-radius: 3px;
+  text-shadow: 0 1px 0 #666;
+  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+input[type="button"]:hover {
+  color: white;
+}
+
+input#save_btn { background-color: #428bca; border-color: #357ebd; }
+input#save_btn:hover { box-shadow: inset 0 0 4px 2px #357ebd; }
+input#save_btn:active { border-color: #285e8e; }
+
+input#open_btn { background-color: #5cb85c; border-color: #4cae4c; }
+input#open_btn:hover { box-shadow: inset 0 0 4px 1px #4cae4c; }
+input#open_btn:active { border-color: #398439; }
+
+div#drop_zone {
+  display: table;
+  
+  position: fixed;
+  z-index: 400;
+  
+  width: 100%;
+  height: 100%;
+  
+  cursor: default;
+  -webkit-user-select: none;
+  
+  text-align: center;
+  font-size: 4em;
+  font-weight: 500;
+  color: rgba(0, 0, 0, .5);
+  text-shadow: 0 1px rgba(255, 255, 255, .4);
+  background-color: rgba(200, 200, 200, .8);
+}
+
+div#drop_zone span {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+div#topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 370px;
+  z-index: 200;
+  
+  border-bottom: 1px solid;
+  padding: 6px 6px 5px;
+  background-color: #f8f8f8;
+}
+
+div#topbar div#search_bar {
+  overflow: auto;
+  padding-right: 5px;
+}
+
+div#topbar div#buttons {
+  float: right;
+}
+
+input#search_field {
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px rgba(255, 255, 255, .2);
+}
+
+pre#hexview {
+  -webkit-font-smoothing: antialiased;
+  font-weight: 300;
+  text-shadow: 1px solid white;
+  
+  font-size: 10px;
+  
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: scroll;
+  
+  border-left: 1px solid;
+  padding: 6px 8px;
+  width: 354px;
+  background-color: #f8f8f8;
+}
+
+pre#hexview, div#topbar {
+  border-color: #dadada;
+}
+
+body {
+  font-family: 'Helvetica Neue', 'Helvetica', 'Myriad Pro', 'Arial', sans-serif;
+  font-size: 11px;
+  font-weight: 300;
+  color: #333;
+}
+
+.nbt-icon {
+  position: relative;
+  top: 3px;
+  background: url(../assets/nbt-sheet.png) no-repeat !important;
+  background-size: 64px 64px !important;
+  width: 16px !important;
+  height: 16px !important;
+  background-position: -48px -32px !important;
+}
+
+.nbt-icon.bytetag   { background-position:   0px 0px !important; }
+.nbt-icon.doubletag { background-position: -16px 0px !important; }
+.nbt-icon.floattag  { background-position: -32px 0px !important; }
+.nbt-icon.inttag    { background-position: -48px 0px !important; }
+
+.nbt-icon.longtag     { background-position:   0px -16px !important; }
+.nbt-icon.shorttag    { background-position: -16px -16px !important; }
+.nbt-icon.stringtag   { background-position: -32px -16px !important; }
+.nbt-icon.compoundtag { background-position: -48px -16px !important; }
+
+.nbt-icon.bytearraytag { background-position: 0 -32px !important; }
+.nbt-icon.intarraytag  { background-position: -16px -32px !important; }
+.nbt-icon.listtag      { background-position: -32px -32px !important; }
