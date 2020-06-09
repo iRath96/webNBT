@@ -1,3 +1,12 @@
+function escapeHtml(unsafe) {
+  return unsafe
+       .replace(/&/g, "&amp;")
+       .replace(/</g, "&lt;")
+       .replace(/>/g, "&gt;")
+       .replace(/"/g, "&quot;")
+       .replace(/'/g, "&#039;");
+}
+
 var TagLibrary = (function() {
   var self = this;
   
@@ -84,7 +93,7 @@ var TagLibrary = (function() {
     _.setJSValue = function(v) { return this.needsSerialization() ? this.deserializeValue(v) : this.setValue(v); };
     
     _.toString = function(key) {
-      var prefix = '<b>' + this.getName() + '</b>';
+      var prefix = '<b>' + escapeHtml(this.getName()) + '</b>';
       if(!this.hasName()) prefix = (key !== '' && key !== undefined ? '<i>' + key + '</i>' : '(unnamed)');
       
       if(this instanceof Module.CompoundTag ) return prefix;
@@ -92,7 +101,7 @@ var TagLibrary = (function() {
       if(this instanceof Module.IntArrayTag ) return prefix + ' ' + pluralize(this.getValue().getCount(), 'int');
       if(this instanceof Module.ByteArrayTag) return prefix + ' ' + pluralize(this.getValue().getCount(), 'byte');
       
-      var vstr = ''+this.getJSValue();
+      var vstr = '' + this.getJSValue();
       if(this instanceof Module.StringTag) vstr = '"' + vstr + '"';
       return prefix + ': ' + vstr;
     };

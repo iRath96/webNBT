@@ -4,16 +4,25 @@ function HighlightedString(str, range) {
   this.max = range[1];
 }
 
+function escapeHtml(unsafe) {
+  return unsafe
+       .replace(/&/g, "&amp;")
+       .replace(/</g, "&lt;")
+       .replace(/>/g, "&gt;")
+       .replace(/"/g, "&quot;")
+       .replace(/'/g, "&#039;");
+}
+
 HighlightedString.prototype.substring = function(a, b) {
   var mB = this.min < b ? this.min : b;
   var mA = this.max > a ? this.max : a;
   
-  var before = a >= this.min ? '' : this.string.substr(a, mB - a);
-  var after  = b <= this.max ? '' : this.string.substr(mA, b - mA);
+  var before = a >= this.min ? '' : escapeHtml(this.string.substr(a, mB - a));
+  var after  = b <= this.max ? '' : escapeHtml(this.string.substr(mA, b - mA));
   
   var hA = a < this.min ? mB : a;
   var hB = b > this.max ? mA : b;
-  var inside = hA >= hB ? '' : '<font color="red">' + this.string.substr(hA, hB - hA) + '</font>';
+  var inside = hA >= hB ? '' : '<font color="red">' + escapeHtml(this.string.substr(hA, hB - hA)) + '</font>';
   
   var pad = '';
   
