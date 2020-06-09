@@ -68,8 +68,8 @@ var App = (function() {
     if(navigator.userAgent.indexOf("Chrome/") > -1) runsInSafari = false;
     if(navigator.userAgent.indexOf("OPR/") > -1) runsInSafari = false;
     
-    if(App.runsInSafari)
-      alert("Safari does not properly support file downloads.\nYou can view and edit files, but saving them might not work properly." + please_switch);
+    //if(App.runsInSafari)
+    //  alert("Safari does not properly support file downloads.\nYou can view and edit files, but saving them might not work properly." + please_switch);
   };
   
   this.refreshTree = function() {
@@ -98,23 +98,25 @@ var App = (function() {
   
   function tryMode(data, mode, isNamed) {
     var fn = mode == DATAMODE_COMPRESSED ? 'deserializeCompressed' : 'deserialize';
-    try {
+    //try {
       TagLibrary.setRootTag(Module.Tag[fn](data, isNamed, -1));
       this.dataMode = mode;
       
       App.refreshTree();
       
       return true;
-    } catch(e) {
-      return false;
-    }
+    //} catch(e) {
+    //  console.log(e);
+    //  return false;
+    //}
   }
   
   this.loadData = function(data) {
+    console.log(data.length);
     if(tryMode(data, DATAMODE_COMPRESSED, true)) return;
-    if(tryMode(data, DATAMODE_COMPRESSED, false)) return;
-    if(tryMode(data, DATAMODE_UNCOMPRESSED, true)) return;
-    if(tryMode(data, DATAMODE_UNCOMPRESSED, false)) return;
+    //if(tryMode(data, DATAMODE_COMPRESSED, false)) return;
+    //if(tryMode(data, DATAMODE_UNCOMPRESSED, true)) return;
+    //if(tryMode(data, DATAMODE_UNCOMPRESSED, false)) return;
     
     if(confirm("Could not parse your file.\nIf you are sure this is a NBT-file you should report a bug.\n\nClick OK to contact the developer."))
       location.href = "http://irath96.github.io/contact/";

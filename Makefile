@@ -1,8 +1,8 @@
 NBT_CPP=$(wildcard nbt-utils/*.cpp)
-NBT_O=$(NBT_CPP:.cpp=.o)
+NBT_O=$(NBT_CPP:.cpp=.bc)
 
 build: $(NBT_O)
-	em++ -s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 --bind -O2 $(NBT_O) zlib/libz.a -o web-app/NBT.js
+	em++ -s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 --bind $(NBT_O) -s USE_ZLIB=1 -o web-app/NBT.js
 
 test: build
 	node NBT.js
@@ -10,6 +10,6 @@ test: build
 clean:
 	rm -f $(NBT_O)
 
-%.o: %.cpp
+%.bc: %.cpp
 	echo $? -> $@
-	em++ -Izlib -O2 $? -o $@ -std=c++0x
+	em++ $? -c -o $@ -std=c++0x
