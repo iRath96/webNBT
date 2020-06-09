@@ -112,11 +112,10 @@ var App = (function() {
   }
   
   this.loadData = function(data) {
-    console.log(data.length);
     if(tryMode(data, DATAMODE_COMPRESSED, true)) return;
-    //if(tryMode(data, DATAMODE_COMPRESSED, false)) return;
-    //if(tryMode(data, DATAMODE_UNCOMPRESSED, true)) return;
-    //if(tryMode(data, DATAMODE_UNCOMPRESSED, false)) return;
+    if(tryMode(data, DATAMODE_COMPRESSED, false)) return;
+    if(tryMode(data, DATAMODE_UNCOMPRESSED, true)) return;
+    if(tryMode(data, DATAMODE_UNCOMPRESSED, false)) return;
     
     if(confirm("Could not parse your file.\nIf you are sure this is a NBT-file you should report a bug.\n\nClick OK to contact the developer."))
       location.href = "http://irath96.github.io/contact/";
