@@ -98,17 +98,17 @@ var App = (function() {
   
   function tryMode(data, mode, isNamed) {
     var fn = mode == DATAMODE_COMPRESSED ? 'deserializeCompressed' : 'deserialize';
-    //try {
+    try {
       TagLibrary.setRootTag(Module.Tag[fn](data, isNamed, -1));
       this.dataMode = mode;
       
       App.refreshTree();
       
       return true;
-    //} catch(e) {
-    //  console.log(e);
-    //  return false;
-    //}
+    } catch(e) {
+      console.log(e);
+      return false;
+    }
   }
   
   this.loadData = function(data) {
