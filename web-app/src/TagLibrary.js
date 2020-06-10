@@ -103,7 +103,7 @@ var TagLibrary = (function() {
       
       var vstr = '' + this.getJSValue();
       if(this instanceof Module.StringTag) vstr = '"' + vstr + '"';
-      return prefix + ': ' + vstr;
+      return prefix + ': ' + escapeHtml(vstr);
     };
   };
   
