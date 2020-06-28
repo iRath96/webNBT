@@ -12,6 +12,24 @@
 #include <vector>
 #include <map>
 
+int64_t ntoh64(int64_t input) {
+  uint64_t rval;
+  uint8_t *data = (uint8_t *)&rval;
+  data[0] = input >> 56;
+  data[1] = input >> 48;
+  data[2] = input >> 40;
+  data[3] = input >> 32;
+  data[4] = input >> 24;
+  data[5] = input >> 16;
+  data[6] = input >> 8;
+  data[7] = input >> 0;
+  return rval;
+}
+
+int64_t hton64(int64_t input) {
+  return ntoh64(input);
+}
+
 namespace nbt {
   class Tag;
 }
@@ -36,6 +54,7 @@ Tag *nbt::makeTag(TagType::Enum type) {
       do_case(List);
       do_case(Compound);
       do_case(IntArray);
+      do_case(LongArray);
 #undef do_case
     case TagType::Unknown: break;
   }
@@ -231,6 +250,23 @@ wr_payload(IntArrayTag) {
   stream.write((char *)&count, 4);
   stream.write((char *)output, value.count * 4); }
 
+rd_payload(LongArrayTag) {
+  uint32_t count;
+  stream.read((char *)&count, 4);
+  count = ntohl(count);
+  
+  value.count = count;
+  value.data.reset((int64_t *)(malloc(count * 8)));
+  stream.read((char *)value.data.get(), count * 8);
+  for(uint32_t i = 0; i < count; ++i) value.data.get()[i] = ntoh64(value.data.get()[i]); }
+wr_payload(LongArrayTag) {
+  uint64_t output[value.count];
+  for(uint32_t i = 0; i < value.count; ++i) output[i] = hton64(value.data.get()[i]);
+  
+  uint32_t count = htonl(value.count);
+  stream.write((char *)&count, 4);
+  stream.write((char *)output, value.count * 8); }
+
 #undef rd_payload
 #undef wr_payload
 
@@ -273,6 +309,23 @@ template<> void I32Array::deserialize(std::string str) {
     ss >> data.get()[i];
 }
 
+template<> std::string I64Array::serialize() const {
+  std::stringstream ss;
+  for(size_t i = 0; i < count; ++i) ss << data.get()[i] << " ";
+  return ss.str();
+}
+
+template<> void I64Array::deserialize(std::string str) {
+  size_t count = std::count(str.begin(), str.end(), ' ');
+  if(*str.rbegin() != ' ')
+    ++count; // Our last character is not a delimiter, so we didn't account for one number.
+  
+  std::stringstream ss(str);
+  resize(count);
+  for(size_t i = 0; i < count; ++i)
+    ss >> data.get()[i];
+}
+
 #pragma mark - Value serialization
 // (emscripten)
 // These are used to interface with JavaScript in cases
@@ -284,6 +337,9 @@ template<> void ByteArrayTag::deserializeValue(std::string str) { value.deserial
 
 template<> std::string IntArrayTag::serializeValue() const { return value.serialize(); }
 template<> void IntArrayTag::deserializeValue(std::string str) { value.deserialize(str); }
+
+template<> std::string LongArrayTag::serializeValue() const { return value.serialize(); }
+template<> void LongArrayTag::deserializeValue(std::string str) { value.deserialize(str); }
 
 template<> std::string LongTag::serializeValue() const { return std::to_string(value); }
 template<> void LongTag::deserializeValue(std::string str) { value = std::stoll(str); }

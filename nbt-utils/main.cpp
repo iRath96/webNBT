@@ -66,6 +66,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
   
   array_class(U8Array);
   array_class(I32Array);
+  array_class(I64Array);
 #undef array_class
   
   class_<TagHash>("TagHash") // Not thread-safe
@@ -97,6 +98,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
   subclass(CompoundTag);
   subclass(ByteArrayTag);
   subclass(IntArrayTag);
+  subclass(LongArrayTag);
   subclass(ListTagBase);
 #undef subclass
   

@@ -28,7 +28,8 @@ var TagLibrary = (function() {
     'StringTag'    :  8,
     'ListTag'      :  9,
     'CompoundTag'  : 10,
-    'IntArrayTag'  : 11
+    'IntArrayTag'  : 11,
+    'LongArrayTag' : 12
   };
   
   this.nameForType = function(type) {
@@ -87,7 +88,7 @@ var TagLibrary = (function() {
     _.isEditable = function() { return !(this instanceof Module.ListTag || this instanceof Module.CompoundTag); };
     _.isNumeric = function() { return this.tagType() >= 1 && this.tagType() <= 6; };
     _.usesNumericValues = function() { return this.isNumeric() && !(this instanceof Module.LongTag); };
-    _.needsSerialization = function() { return (this instanceof Module.LongTag || this instanceof Module.ByteArrayTag || this instanceof Module.IntArrayTag); };
+    _.needsSerialization = function() { return (this instanceof Module.LongTag || this instanceof Module.ByteArrayTag || this instanceof Module.IntArrayTag || this instanceof Module.LongArrayTag); };
     
     _.getJSValue = function( ) { return this.needsSerialization() ? this.serializeValue()    : this.getValue( ); };
     _.setJSValue = function(v) { return this.needsSerialization() ? this.deserializeValue(v) : this.setValue(v); };
@@ -99,6 +100,7 @@ var TagLibrary = (function() {
       if(this instanceof Module.CompoundTag ) return prefix;
       if(this instanceof Module.ListTag     ) return prefix + ' ' + pluralize(this.getCount(), nameForType(this.getEntryKind()) + ' entry');
       if(this instanceof Module.IntArrayTag ) return prefix + ' ' + pluralize(this.getValue().getCount(), 'int');
+      if(this instanceof Module.LongArrayTag) return prefix + ' ' + pluralize(this.getValue().getCount(), 'long');
       if(this instanceof Module.ByteArrayTag) return prefix + ' ' + pluralize(this.getValue().getCount(), 'byte');
       
       var vstr = '' + this.getJSValue();

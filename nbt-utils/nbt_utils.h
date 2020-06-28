@@ -42,6 +42,7 @@ namespace nbt {
       List      = 9,
       Compound  = 10,
       IntArray  = 11,
+      LongArray = 12,
       
       Unknown = -1 //!< Placeholder for when the type needs to be read
     };
@@ -192,6 +193,7 @@ namespace nbt {
   
   typedef Array<uint8_t> U8Array;
   typedef Array<int32_t> I32Array;
+  typedef Array<int64_t> I64Array;
   
 #pragma mark - Hash
   
@@ -231,6 +233,7 @@ namespace nbt {
   typedef PrimitiveTag<std::string , TagType::String    > StringTag;
   typedef PrimitiveTag<TagHash     , TagType::Compound  > CompoundTag;
   typedef PrimitiveTag<I32Array    , TagType::IntArray  > IntArrayTag;
+  typedef PrimitiveTag<I64Array    , TagType::LongArray > LongArrayTag;
   
 #pragma mark - Value serialization
   // (emscripten)
