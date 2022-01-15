@@ -3,7 +3,7 @@
   padding: 0;
 }
 
-input {
+input#search_field {
   font: inherit;
   outline: none;
   border: 1px solid #d0d0d0;
