@@ -44,9 +44,9 @@
   <body>
     <div id="drop_zone">
       <span>
-      Drop file here<br>
-      Or select file<br>
-      <input id="file-input" type="file" name="name"/><br>
+        Drop file here<br />
+        or select file<br />
+        <input id="file_input" type="file" /><br>
       </span>
       <div id="contact" style="font-size:12px;position:fixed;bottom:10px;right:20px;opacity:0.8;">
         Feedback? <a href="http://irath96.github.io/contact/">Contact me</a>
@@ -83,8 +83,8 @@
       }
       
       // Setup the dnd listeners.
-      document.getElementById('file-input').onchange = function() {
-        var files = document.getElementById('file-input').files; // FileList object.
+      document.getElementById('file_input').onchange = function() {
+        var files = document.getElementById('file_input').files; // FileList object.
         for (var i = 0, f; f = files[i]; ++i) {
           var reader = new FileReader();
           
@@ -101,6 +101,7 @@
           
         document.querySelector('#drop_zone').style.display = 'none';
       };
+
       var dropZone = document.getElementById('drop_zone');
       dropZone.addEventListener('dragover', handleDragOver, false);
       dropZone.addEventListener('drop', handleFileSelect, false);
