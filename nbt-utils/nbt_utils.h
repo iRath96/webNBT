@@ -107,6 +107,8 @@ namespace nbt {
     
     virtual void readPayload(std::istream &stream) = 0;
     virtual void writePayload(std::ostream &stream) const = 0;
+    
+    virtual void writeSNBT(std::ostream &stream) const = 0;
   };
   
   class EndTag : public Tag {
@@ -114,6 +116,8 @@ namespace nbt {
     virtual TagType::Enum tagType() const { return TagType::End; }
     virtual void readPayload(std::istream &stream) {}
     virtual void writePayload(std::ostream &stream) const {}
+
+    virtual void writeSNBT(std::ostream &stream) const {};
   };
   
   template<typename T, TagType::Enum type>
@@ -138,6 +142,8 @@ namespace nbt {
     
     virtual void readPayload(std::istream &stream);
     virtual void writePayload(std::ostream &stream) const;
+
+    virtual void writeSNBT(std::ostream &stream) const;
   };
   
   typedef PrimitiveTag<std::vector<std::shared_ptr<Tag>>, TagType::List> ListTagBase;
@@ -149,6 +155,8 @@ namespace nbt {
     
     virtual void readPayload(std::istream &stream);
     virtual void writePayload(std::ostream &stream) const;
+
+    virtual void writeSNBT(std::ostream &stream) const;
     
     // Emscripten interface
     TagType::Enum getEntryKind() const { return entryKind; }

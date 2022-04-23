@@ -125,6 +125,8 @@ void Tag::write(Tag *tag, std::ostream &stream, const std::string &name, TagType
 template<> void ListTagBase::readPayload(std::istream &) {}
 template<> void ListTagBase::writePayload(std::ostream &) const {}
 
+template<> void ListTagBase::writeSNBT(std::ostream &) const {}
+
 void ListTag::readPayload(std::istream &stream) {
   stream.get((char &)entryKind);
   
@@ -269,6 +271,108 @@ wr_payload(LongArrayTag) {
 
 #undef rd_payload
 #undef wr_payload
+
+#pragma mark - SNBT parsing
+
+#define wr_snbt(klass) template<> void nbt::klass::writeSNBT(std::ostream &stream) const
+
+wr_snbt(ByteTag) { stream << (int) value << 'b'; }  // C++ cannot distinguish byte from char
+wr_snbt(ShortTag) { stream << value << 's'; }
+wr_snbt(IntTag) { stream << value; }
+wr_snbt(LongTag) { stream << value << 'l'; }
+wr_snbt(FloatTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << value << 'f'; }
+wr_snbt(DoubleTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << value; }
+
+wr_snbt(ByteArrayTag) {
+  stream << "[B;";
+  ByteTag numTag;
+  uint32_t count = htonl(value.count);
+  uint8_t* ptr = value.data.get();
+  for (uint32_t i = 0; i < count; ++i) {
+    numTag.value = ptr[i];
+    numTag.writeSNBT(stream);
+    if (i < count - 1)
+      stream << ',';
+  }
+  stream << ']';
+}
+
+wr_snbt(StringTag) {
+  stream << '"';
+  uint16_t count = htons(value.length());
+  for (auto it = value.begin(); it != value.end(); ++it) {
+    char c = *it;
+    switch (c) {
+      case '"':
+      case '\'':
+      case '\\':  // apparently, SNBT does not have non-printable/control escaping
+        stream << '\\';
+        // fallthrough
+      default:
+        stream << c;
+    }
+  }
+  stream << '"';
+}
+
+wr_snbt(CompoundTag) {
+  StringTag key;
+  bool first = true;
+  stream << '{';
+  for(auto it = value.begin(); it != value.end(); ++it) {
+    if (!first)
+      stream << ',';
+    first = false;
+    key.value = it->first;
+    key.writeSNBT(stream);
+    stream << ':';
+    it->second->writeSNBT(stream);
+  }
+  stream << '}';
+}
+
+void ListTag::writeSNBT(std::ostream &stream) const {
+  StringTag key;
+  bool first = true;
+  stream << '[';
+  for(auto it = value.begin(); it != value.end(); ++it) {
+    if (!first)
+      stream << ',';
+    first = false;
+    (*it)->writeSNBT(stream);
+  }
+  stream << ']';
+}
+
+wr_snbt(IntArrayTag) {
+  stream << "[I;";
+  IntTag numTag;
+  uint32_t count = htonl(value.count);
+  int32_t* ptr = value.data.get();
+  for (uint32_t i = 0; i < count; ++i) {
+    numTag.value = ptr[i];
+    numTag.writeSNBT(stream);
+    if (i < count - 1)
+      stream << ',';
+  }
+  stream << ']';
+}
+
+wr_snbt(LongArrayTag) {
+  stream << "[L;";
+  LongTag numTag;
+  uint32_t count = htonl(value.count);
+  int64_t* ptr = value.data.get();
+  for (uint32_t i = 0; i < count; ++i) {
+    numTag.value = ptr[i];
+    numTag.writeSNBT(stream);
+    if (i < count - 1)
+      stream << ',';
+  }
+  stream << ']';
+}
+
+#undef wr_snbt
 
 #pragma mark - Array
 template<> std::string U8Array::serialize() const {
