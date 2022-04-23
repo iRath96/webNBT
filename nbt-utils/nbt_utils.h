@@ -105,6 +105,12 @@ namespace nbt {
       return *(std::basic_string<unsigned char> *)&c2;
     }
     
+    std::string toSNBTString() {
+      std::stringstream stream;
+      writeSNBT(stream);
+      return stream.str();
+    }
+    
     virtual void readPayload(std::istream &stream) = 0;
     virtual void writePayload(std::ostream &stream) const = 0;
     

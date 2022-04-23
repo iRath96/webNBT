@@ -346,6 +346,23 @@ var App = (function() {
         }
       };
     
+    actions["copy"] = {
+      "label": "Copy",
+      "action": function(obj) {
+        var str = tag.toSNBTString();
+        console.log(str);
+        var elem = document.createElement("textarea");
+        elem.value = str;
+        document.body.appendChild(elem);
+        try {
+          elem.select();
+          document.execCommand("copy");
+        } finally {
+          document.body.removeChild(elem);
+        }
+      }
+    }
+    
     return actions;
   }
   
