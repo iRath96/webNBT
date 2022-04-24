@@ -56,6 +56,7 @@ Tag *nbt::makeTag(TagType::Enum type) {
       do_case(IntArray);
       do_case(LongArray);
 #undef do_case
+    case TagType::Invalid:
     case TagType::Unknown: break;
   }
   return tag;
@@ -273,6 +274,99 @@ wr_payload(LongArrayTag) {
 #undef wr_payload
 
 #pragma mark - SNBT parsing
+
+TagTypeMask Tag::getNextSNBTTagTypes(std::istream &stream) {
+  auto savedPos = stream.tellg();
+  TagTypeMask types = 0;
+  while (stream) {
+    switch (stream.peek()) {
+      case EOF:
+        goto end;
+      case ' ':
+      case '\t':
+      case '\r':
+      case '\n':
+        stream.ignore();
+        break;
+      case '"':
+      case '\'':
+        types = tagTypeToMask(TagType::String);
+        goto end;
+      case '{':
+        types = tagTypeToMask(TagType::Compound);
+        goto end;
+      case '[': {
+          types = tagTypeToMask(TagType::List);
+          stream.ignore();
+          char arrayType = 0;
+          stream.get(arrayType);
+          if (stream.peek() == ';') {
+            switch (arrayType) {
+              case 'B':
+                types = tagTypeToMask(TagType::ByteArray);
+                break;
+              case 'I':
+                types = tagTypeToMask(TagType::IntArray);
+                break;
+              case 'L':
+                types = tagTypeToMask(TagType::LongArray);
+                break;
+              default:
+                break;
+            }
+          }
+          goto end;
+        }
+      default: {
+          types = tagTypeToMask(TagType::String);
+          auto c = stream.get();
+          // TODO "true", "false"
+          if (c >= '0' && c <= '9' || c == '.') {
+            bool hadDot = false;
+            do {
+              if (c == '.') {
+                if (hadDot)
+                  break;
+                hadDot = true;
+              } else if (c < '0' || c > '9') {  // EOF included
+                if (c >= 'A' && c <= 'Z')
+                  c += 'a' - 'A';
+                switch (c) {
+                  case 'b':
+                    if (!hadDot)
+                      types |= tagTypeToMask(TagType::Byte);
+                    break;
+                  case 's':
+                    if (!hadDot)
+                      types |= tagTypeToMask(TagType::Short);
+                    break;
+                  case 'l':
+                    if (!hadDot)
+                      types |= tagTypeToMask(TagType::Long);
+                    break;
+                  case 'f':
+                    types |= tagTypeToMask(TagType::Float);
+                    break;
+                  default:
+                    stream.setstate(std::ios_base::goodbit);  // FIXME EOF handling doesn't seem to behave correctly
+                    types |= tagTypeToMask(TagType::Double);
+                    if (!hadDot)
+                      types |= tagTypeToMask(TagType::Int);
+                    break;
+                }
+                break;
+              }
+              c = stream.get();
+            } while (true);
+          }
+          goto end;
+        }
+    }
+  }
+end:
+  stream.seekg(savedPos);
+  return types;
+}
 
 #define wr_snbt(klass) template<> void nbt::klass::writeSNBT(std::ostream &stream) const
 

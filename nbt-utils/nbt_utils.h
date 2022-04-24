@@ -44,9 +44,35 @@ namespace nbt {
       IntArray  = 11,
       LongArray = 12,
       
-      Unknown = -1 //!< Placeholder for when the type needs to be read
+      Unknown = -1, //!< Placeholder for when the type needs to be read
+      Invalid = -2,
     };
   };
+  
+  constexpr TagType::Enum MAX_TAG_TYPE = TagType::LongArray;
+  typedef int32_t TagTypeMask;  // looking back, I'm not sure I actually needed it
+    
+  inline static TagTypeMask tagTypeToMask(TagType::Enum type) {
+    if (type < -1 || type > MAX_TAG_TYPE) {
+      return 0;
+    }
+    if (type == -1)
+      return -1;
+    return (1 << type);
+  }
+  
+  inline static TagType::Enum maskToTagType(TagTypeMask mask, TagTypeMask constrainingMask = -1) {
+    mask &= constrainingMask;
+    if (!mask)
+      return TagType::Invalid;
+    if (mask == -1)
+      return TagType::Unknown;
+    for (char i = 0; i <= MAX_TAG_TYPE; ++i) {
+      if ((1 << i) & mask)
+        return (TagType::Enum) i;  // Make sure, that String comes after numeric
+    }
+    return TagType::Invalid;
+  }
   
   class Tag;
   Tag *makeTag(TagType::Enum); //!< Factory method
@@ -104,7 +130,7 @@ namespace nbt {
       auto c2 = zlibDeflate(*(std::string *)&c1);
       return *(std::basic_string<unsigned char> *)&c2;
     }
-    
+
     std::string toSNBTString() {
       std::stringstream stream;
       writeSNBT(stream);
@@ -115,6 +141,8 @@ namespace nbt {
     virtual void writePayload(std::ostream &stream) const = 0;
     
     virtual void writeSNBT(std::ostream &stream) const = 0;
+    
+    static TagTypeMask getNextSNBTTagTypes(std::istream &stream);
   };
   
   class EndTag : public Tag {
