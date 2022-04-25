@@ -110,6 +110,15 @@ namespace nbt {
       return read(stream, withName, type);
     }
     
+    int fromSNBTString(std::string snbt) {
+      std::stringstream stream(snbt);
+      if (!(getNextSNBTTagTypes(stream) & tagTypeToMask(tagType())))
+        return 0;
+      if(!readSNBT(stream))
+        return stream.tellg();
+      return -1;
+    }
+    
     // Write
     static void write(Tag *tag, std::ostream &stream, TagType::Enum type = TagType::Unknown);
     static void write(Tag *tag, std::ostream &stream, const std::string &name, TagType::Enum type = TagType::Unknown);
@@ -140,6 +149,7 @@ namespace nbt {
     virtual void readPayload(std::istream &stream) = 0;
     virtual void writePayload(std::ostream &stream) const = 0;
     
+    virtual bool readSNBT(std::istream &stream) = 0;
     virtual void writeSNBT(std::ostream &stream) const = 0;
     
     static TagTypeMask getNextSNBTTagTypes(std::istream &stream);
@@ -151,6 +161,7 @@ namespace nbt {
     virtual void readPayload(std::istream &stream) {}
     virtual void writePayload(std::ostream &stream) const {}
 
+    virtual bool readSNBT(std::istream &stream) { return false; };
     virtual void writeSNBT(std::ostream &stream) const {};
   };
   
@@ -177,6 +188,7 @@ namespace nbt {
     virtual void readPayload(std::istream &stream);
     virtual void writePayload(std::ostream &stream) const;
 
+    virtual bool readSNBT(std::istream &stream);
     virtual void writeSNBT(std::ostream &stream) const;
   };
   
@@ -190,6 +202,7 @@ namespace nbt {
     virtual void readPayload(std::istream &stream);
     virtual void writePayload(std::ostream &stream) const;
 
+    virtual bool readSNBT(std::istream &stream);
     virtual void writeSNBT(std::ostream &stream) const;
     
     // Emscripten interface

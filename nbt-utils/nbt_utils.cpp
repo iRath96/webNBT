@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <set>
 
 int64_t ntoh64(int64_t input) {
   uint64_t rval;
@@ -126,6 +127,7 @@ void Tag::write(Tag *tag, std::ostream &stream, const std::string &name, TagType
 template<> void ListTagBase::readPayload(std::istream &) {}
 template<> void ListTagBase::writePayload(std::ostream &) const {}
 
+template<> bool ListTagBase::readSNBT(std::istream &) { return false; }
 template<> void ListTagBase::writeSNBT(std::ostream &) const {}
 
 void ListTag::readPayload(std::istream &stream) {
@@ -275,6 +277,21 @@ wr_payload(LongArrayTag) {
 
 #pragma mark - SNBT parsing
 
+inline static void skip_whitespaces(std::istream &stream) {
+  while (stream) {
+    switch (stream.peek()) {
+      case ' ':
+      case '\t':
+      case '\r':
+      case '\n':
+        stream.ignore();
+        break;
+      default:
+        return;
+    }
+  }
+}
+
 TagTypeMask Tag::getNextSNBTTagTypes(std::istream &stream) {
   auto savedPos = stream.tellg();
   TagTypeMask types = 0;
@@ -369,14 +386,86 @@ end:
 }
 
 #define wr_snbt(klass) template<> void nbt::klass::writeSNBT(std::ostream &stream) const
+#define rd_snbt(klass) template<> bool nbt::klass::readSNBT(std::istream &stream) 
+ 
+#define rd_snbt_suffix(tagCls, readType, suffixUpper, suffixLower) \
+  rd_snbt(tagCls) { \
+    readType value_; \
+    stream >> value_; \
+    if (!stream) \
+      return false; \
+    char suffix; \
+    stream.get(suffix); \
+    if (!stream || suffix != suffixUpper && suffix != suffixLower) \
+      return false; \
+    value = (decltype(value)) value_; \
+    return true; \
+  }
 
+
+rd_snbt_suffix(ByteTag, int, 'B', 'b');
 wr_snbt(ByteTag) { stream << (int) value << 'b'; }  // C++ cannot distinguish byte from char
+
+rd_snbt_suffix(ShortTag, int16_t, 'S', 's');
 wr_snbt(ShortTag) { stream << value << 's'; }
+
+rd_snbt(IntTag) { stream >> value; return !!stream; }  // JavaScript moment
 wr_snbt(IntTag) { stream << value; }
+
+rd_snbt_suffix(LongTag, int64_t, 'L', 'l');
 wr_snbt(LongTag) { stream << value << 'l'; }
+
+rd_snbt_suffix(FloatTag, float, 'F', 'f');  // FIXME reading into float variable fails
 wr_snbt(FloatTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << value << 'f'; }
+
+rd_snbt(DoubleTag) { stream >> value; return !!stream; }
 wr_snbt(DoubleTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << value; }
 
+#undef rd_snbt_suffix
+
+#define rd_snbt_typed_array(elementType, typeMarker) \
+  rd_snbt(elementType##ArrayTag) { \
+    skip_whitespaces(stream); \
+    char c; \
+    stream.get(c); \
+    if (c != '[') \
+      return false; \
+    stream.get(c); \
+    if (c != typeMarker) \
+      return false; \
+    stream.get(c); \
+    if (c != ';') \
+      return false; \
+    const TagTypeMask acceptedMask = tagTypeToMask(TagType::elementType); \
+    elementType##Tag numTag; \
+    std::vector<decltype(numTag.value)> elements; \
+    while (stream) { \
+      skip_whitespaces(stream); \
+      if (!stream) \
+        return false; \
+      if (stream.peek() == ']') { \
+        stream.ignore(); \
+        break; \
+      } \
+      if (!(getNextSNBTTagTypes(stream) & acceptedMask)) \
+        return false; \
+      if(!numTag.readSNBT(stream)) \
+        return false; \
+      elements.push_back(numTag.value); \
+      skip_whitespaces(stream); \
+      stream.get(c); \
+      if (c == ']') \
+        break; \
+      if (c != ',') \
+        return false; \
+    } \
+    value.resize(elements.size()); \
+    for (int i = 0; i < elements.size(); ++i) \
+      value.setElement(i, elements[i]); \
+    return true; \
+  }
+
+rd_snbt_typed_array(Byte, 'B')
 wr_snbt(ByteArrayTag) {
   stream << "[B;";
   ByteTag numTag;
@@ -391,6 +480,39 @@ wr_snbt(ByteArrayTag) {
   stream << ']';
 }
 
+rd_snbt(StringTag) {
+  skip_whitespaces(stream);
+  std::set<char> stringEnd;
+  switch (stream.peek()) {
+    case '"':
+    case '\'':
+      char c;
+      stream.get(c);
+      stringEnd = {c};
+      break;
+    default:
+      stringEnd = {' ', ',', ':', ']', '}'};
+      break;
+  }
+  std::vector<char> characters;
+  while (stream) {
+    auto c = stream.peek();
+    if (c == '\\') {
+      stream.ignore();
+      c = stream.peek();
+    } else {
+      if (stringEnd.count(c)) {
+        value = std::string(characters.begin(), characters.end());
+        if (c == '\'' || c == '"')
+          stream.ignore();
+        return true;
+      }
+    }
+    characters.push_back(c);
+    stream.ignore();
+  }
+  return false;
+}
 wr_snbt(StringTag) {
   stream << '"';
   uint16_t count = htons(value.length());
@@ -409,6 +531,52 @@ wr_snbt(StringTag) {
   stream << '"';
 }
 
+rd_snbt(CompoundTag) {
+  skip_whitespaces(stream);
+  char c;
+  stream.get(c);
+  if (c != '{')
+    return false;
+  StringTag key;
+  const TagTypeMask keyMask = tagTypeToMask(TagType::String);
+  decltype(value) newValue;
+  while (stream) {
+    skip_whitespaces(stream);
+    if (!stream)
+      return false;
+    if (stream.peek() == '}') {
+      stream.ignore();
+      break;
+    }
+    if (!(getNextSNBTTagTypes(stream) & keyMask))
+      return false;
+    if (!key.readSNBT(stream))
+      return false;
+    skip_whitespaces(stream);
+    stream.get(c);
+    if (c != ':')
+      return false;
+    skip_whitespaces(stream);
+    TagType::Enum valueType = maskToTagType(getNextSNBTTagTypes(stream));
+    if (valueType < 0 || valueType > MAX_TAG_TYPE)
+      return false;
+    Tag *e = makeTag(valueType);
+    if (!e)
+      return false;
+    e->name = key.value;
+    if (!e->readSNBT(stream))
+      return false;
+    newValue[key.value] = std::shared_ptr<Tag>(e);
+    skip_whitespaces(stream);
+    stream.get(c);
+    if (c == '}')
+      break;
+    if (c != ',')
+      return false;
+  }
+  value = std::move(newValue);
+  return true;
+}
 wr_snbt(CompoundTag) {
   StringTag key;
   bool first = true;
@@ -425,6 +593,44 @@ wr_snbt(CompoundTag) {
   stream << '}';
 }
 
+bool ListTag::readSNBT(std::istream &stream) {
+  skip_whitespaces(stream);
+  char c;
+  stream.get(c);
+  if (c != '[')
+    return false;
+  TagTypeMask acceptedMask = tagTypeToMask(TagType::Unknown);
+  decltype(value) newValue;
+  while (stream) {
+    skip_whitespaces(stream);
+    if (!stream)
+      return false;
+    if (stream.peek() == ']') {
+      stream.ignore();
+      break;
+    }
+    if (!(getNextSNBTTagTypes(stream) & acceptedMask))
+      return false;
+    TagType::Enum valueType = maskToTagType(getNextSNBTTagTypes(stream), acceptedMask);
+    if (valueType < 0 || valueType > MAX_TAG_TYPE)
+      return false;
+    Tag *e = makeTag(valueType);
+    if (!e)
+      return false;
+    if (!e->readSNBT(stream))
+      return false;
+    newValue.push_back(std::shared_ptr<Tag>(e));  // TODO names?
+    entryKind = valueType;
+    skip_whitespaces(stream);
+    stream.get(c);
+    if (c == ']')
+      break;
+    if (c != ',')
+      return false;
+  }
+  value = std::move(newValue);
+  return true;
+}
 void ListTag::writeSNBT(std::ostream &stream) const {
   StringTag key;
   bool first = true;
@@ -438,6 +644,7 @@ void ListTag::writeSNBT(std::ostream &stream) const {
   stream << ']';
 }
 
+rd_snbt_typed_array(Int, 'I')
 wr_snbt(IntArrayTag) {
   stream << "[I;";
   IntTag numTag;
@@ -452,6 +659,7 @@ wr_snbt(IntArrayTag) {
   stream << ']';
 }
 
+rd_snbt_typed_array(Long, 'L')
 wr_snbt(LongArrayTag) {
   stream << "[L;";
   LongTag numTag;
@@ -465,6 +673,8 @@ wr_snbt(LongArrayTag) {
   }
   stream << ']';
 }
+
+#undef rd_snbt_typed_array
 
 #undef wr_snbt
 
