@@ -363,6 +363,33 @@ var App = (function() {
       }
     }
     
+    actions["paste_instead"] = {
+      "label": "Paste instead",
+      "action": function(obj) {
+        var str = null;
+        var elem = document.createElement("textarea");
+        document.body.appendChild(elem);
+        try {
+          elem.select();
+          if (document.execCommand("paste"))
+            str = elem.value;
+        } finally {
+          document.body.removeChild(elem);
+        }
+        if (str === null)
+          str = prompt("Paste here");
+        if (!str)
+          return;
+        var errorPos = tag.fromSNBTString(str);
+        if (errorPos >= 0)
+          alert("Parse error at position " + errorPos);
+        else {
+          App.refreshTree();
+          App.updateHexview();
+        }
+      }
+    }
+    
     return actions;
   }
   
