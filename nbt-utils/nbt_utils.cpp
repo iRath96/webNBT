@@ -392,13 +392,22 @@ end:
  
 #define rd_snbt_suffix(tagCls, readType, suffixUpper, suffixLower) \
   rd_snbt(tagCls) { \
+    std::string buf; \
+    char c; \
+    while (stream.get(c)) { \
+      if (c == suffixUpper || c == suffixLower) \
+        break; \
+      if (c >= '0' && c <= '9' || c == '.' || c == '-') \
+        buf.push_back(c); \
+      else \
+        return false; \
+    } \
+    std::stringstream bufStream(buf); \
     readType value_; \
-    stream >> value_; \
-    if (!stream) \
+    bufStream >> value_; \
+    if (bufStream.get() != EOF) \
       return false; \
-    char suffix; \
-    stream.get(suffix); \
-    if (!stream || suffix != suffixUpper && suffix != suffixLower) \
+    if (!stream) \
       return false; \
     value = (decltype(value)) value_; \
     return true; \
@@ -417,7 +426,7 @@ wr_snbt(IntTag) { stream << value; }
 rd_snbt_suffix(LongTag, int64_t, 'L', 'l');
 wr_snbt(LongTag) { stream << value << 'l'; }
 
-rd_snbt_suffix(FloatTag, float, 'F', 'f');  // FIXME reading into float variable fails
+rd_snbt_suffix(FloatTag, float, 'F', 'f');
 wr_snbt(FloatTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << value << 'f'; }
 
 rd_snbt(DoubleTag) { stream >> value; return !!stream; }
