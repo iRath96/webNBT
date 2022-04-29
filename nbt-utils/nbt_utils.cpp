@@ -633,7 +633,7 @@ bool ListTag::readSNBT(std::istream &stream) {
     e->hasName = false;
     if (!e->readSNBT(stream))
       return false;
-    newValue.push_back(std::shared_ptr<Tag>(e));  // TODO names?
+    newValue.push_back(std::shared_ptr<Tag>(e));
     entryKind = valueType;
     skip_whitespaces(stream);
     stream.get(c);
