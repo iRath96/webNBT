@@ -338,6 +338,8 @@ TagTypeMask Tag::getNextSNBTTagTypes(std::istream &stream) {
           types = tagTypeToMask(TagType::String);
           auto c = stream.get();
           // TODO "true", "false"
+          if (c == '-')
+            c = stream.get();
           if (c >= '0' && c <= '9' || c == '.') {
             bool hadDot = false;
             do {
