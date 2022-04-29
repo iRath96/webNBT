@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <limits>
 
 int64_t ntoh64(int64_t input) {
   uint64_t rval;
@@ -427,10 +428,10 @@ rd_snbt_suffix(LongTag, int64_t, 'L', 'l');
 wr_snbt(LongTag) { stream << value << 'l'; }
 
 rd_snbt_suffix(FloatTag, float, 'F', 'f');
-wr_snbt(FloatTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << value << 'f'; }
+wr_snbt(FloatTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << std::setprecision(std::numeric_limits<decltype(value)>::max_digits10) << value << 'f'; }
 
 rd_snbt(DoubleTag) { stream >> value; return !!stream; }
-wr_snbt(DoubleTag) { stream.setf(std::ios::fixed, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << value; }
+wr_snbt(DoubleTag) { stream.setf(std::ios::floatfield, std::ios::floatfield); stream.setf(std::ios::showpoint); stream << std::setprecision(std::numeric_limits<decltype(value)>::max_digits10) << value; }
 
 #undef rd_snbt_suffix
 
