@@ -566,6 +566,7 @@ rd_snbt(CompoundTag) {
     if (!e)
       return false;
     e->name = key.value;
+    e->hasName = true;
     if (!e->readSNBT(stream))
       return false;
     newValue[key.value] = std::shared_ptr<Tag>(e);
@@ -619,6 +620,7 @@ bool ListTag::readSNBT(std::istream &stream) {
     Tag *e = makeTag(valueType);
     if (!e)
       return false;
+    e->hasName = false;
     if (!e->readSNBT(stream))
       return false;
     newValue.push_back(std::shared_ptr<Tag>(e));  // TODO names?
