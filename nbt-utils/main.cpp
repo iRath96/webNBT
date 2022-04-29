@@ -53,6 +53,8 @@ EMSCRIPTEN_BINDINGS(my_module) {
   .function("getStartIndex", &Tag::getStartIndex)
   .function("getEndIndex", &Tag::getEndIndex)
   .function("tagType", &Tag::tagType)
+  .function("fromSNBTString", &Tag::fromSNBTString)
+  .function("toSNBTString", &Tag::toSNBTString)
   ;
   
 #define array_class(klass) \

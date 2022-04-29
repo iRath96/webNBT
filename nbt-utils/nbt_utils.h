@@ -44,9 +44,35 @@ namespace nbt {
       IntArray  = 11,
       LongArray = 12,
       
-      Unknown = -1 //!< Placeholder for when the type needs to be read
+      Unknown = -1, //!< Placeholder for when the type needs to be read
+      Invalid = -2,
     };
   };
+  
+  constexpr TagType::Enum MAX_TAG_TYPE = TagType::LongArray;
+  typedef int32_t TagTypeMask;  // looking back, I'm not sure I actually needed it
+    
+  inline static TagTypeMask tagTypeToMask(TagType::Enum type) {
+    if (type < -1 || type > MAX_TAG_TYPE) {
+      return 0;
+    }
+    if (type == -1)
+      return -1;
+    return (1 << type);
+  }
+  
+  inline static TagType::Enum maskToTagType(TagTypeMask mask, TagTypeMask constrainingMask = -1) {
+    mask &= constrainingMask;
+    if (!mask)
+      return TagType::Invalid;
+    if (mask == -1)
+      return TagType::Unknown;
+    for (char i = 0; i <= MAX_TAG_TYPE; ++i) {
+      if ((1 << i) & mask)
+        return (TagType::Enum) i;  // Make sure, that String comes after numeric
+    }
+    return TagType::Invalid;
+  }
   
   class Tag;
   Tag *makeTag(TagType::Enum); //!< Factory method
@@ -84,6 +110,15 @@ namespace nbt {
       return read(stream, withName, type);
     }
     
+    int fromSNBTString(std::string snbt) {
+      std::stringstream stream(snbt);
+      if (!(getNextSNBTTagTypes(stream) & tagTypeToMask(tagType())))
+        return 0;
+      if(!readSNBT(stream))
+        return stream.tellg();
+      return -1;
+    }
+    
     // Write
     static void write(Tag *tag, std::ostream &stream, TagType::Enum type = TagType::Unknown);
     static void write(Tag *tag, std::ostream &stream, const std::string &name, TagType::Enum type = TagType::Unknown);
@@ -104,9 +139,20 @@ namespace nbt {
       auto c2 = zlibDeflate(*(std::string *)&c1);
       return *(std::basic_string<unsigned char> *)&c2;
     }
+
+    std::string toSNBTString() {
+      std::stringstream stream;
+      writeSNBT(stream);
+      return stream.str();
+    }
     
     virtual void readPayload(std::istream &stream) = 0;
     virtual void writePayload(std::ostream &stream) const = 0;
+    
+    virtual bool readSNBT(std::istream &stream) = 0;
+    virtual void writeSNBT(std::ostream &stream) const = 0;
+    
+    static TagTypeMask getNextSNBTTagTypes(std::istream &stream);
   };
   
   class EndTag : public Tag {
@@ -114,6 +160,9 @@ namespace nbt {
     virtual TagType::Enum tagType() const { return TagType::End; }
     virtual void readPayload(std::istream &stream) {}
     virtual void writePayload(std::ostream &stream) const {}
+
+    virtual bool readSNBT(std::istream &stream) { return false; };
+    virtual void writeSNBT(std::ostream &stream) const {};
   };
   
   template<typename T, TagType::Enum type>
@@ -138,6 +187,9 @@ namespace nbt {
     
     virtual void readPayload(std::istream &stream);
     virtual void writePayload(std::ostream &stream) const;
+
+    virtual bool readSNBT(std::istream &stream);
+    virtual void writeSNBT(std::ostream &stream) const;
   };
   
   typedef PrimitiveTag<std::vector<std::shared_ptr<Tag>>, TagType::List> ListTagBase;
@@ -149,6 +201,9 @@ namespace nbt {
     
     virtual void readPayload(std::istream &stream);
     virtual void writePayload(std::ostream &stream) const;
+
+    virtual bool readSNBT(std::istream &stream);
+    virtual void writeSNBT(std::ostream &stream) const;
     
     // Emscripten interface
     TagType::Enum getEntryKind() const { return entryKind; }
